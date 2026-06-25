@@ -26,9 +26,9 @@ _SECRET_KEYWORDS: Final[tuple[str, ...]] = (
 )
 _SECRET_ENV_VAR_REGEX: Final[re.Pattern[str]] = re.compile(
     r"""
-    .*                  # any prefix
+    (?:^|[^A-Za-z0-9])  # any prefix
     ( {keywords} )      # one of the secret keywords
-    .*                  # any suffix
+    (?:[^A-Za-z0-9]|$)  # any suffix
     """.format(keywords="|".join(_SECRET_KEYWORDS)),
     re.VERBOSE | re.IGNORECASE,
 )
@@ -43,7 +43,7 @@ def redact_value(name: str, value: str) -> str:
     :returns: ``value`` unchanged, or a string of ``*`` of the same length when ``name`` matches.
 
     """
-    if _SECRET_ENV_VAR_REGEX.match(name):
+    if _SECRET_ENV_VAR_REGEX.search(name):
         return "*" * len(value)
     return value
 
@@ -65,7 +65,7 @@ def redact_argv(argv: Sequence[str]) -> list[str]:
         if token.startswith("-") and "=" in token:
             flag, sep, value = token.partition("=")
             name = flag.lstrip("-")
-            if _SECRET_ENV_VAR_REGEX.match(name):
+            if _SECRET_ENV_VAR_REGEX.search(name):
                 result.append(f"{flag}{sep}{'*' * len(value)}")
                 continue
         result.append(token)
